@@ -241,7 +241,7 @@ if __name__ == "__main__":
     TWELVEDATA_API_KEY = os.getenv("TWELVEDATA_API_KEY") or os.getenv("YOUR_API_KEY")
 
     # Для webhook нужен внешний адрес твоей веб-службы на Render
-    APP_BASE_URL = os.getenv("APP_BASE_URL")  # например: https://telegram-crypto-bot.onrender.com
+    APP_BASE_URL = os.getenv("APP_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL")  # например: https://telegram-crypto-bot.onrender.com
     WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", "telegram")  # путь эндпойнта (можно поменять)
     SECRET_TOKEN = os.getenv("TELEGRAM_WEBHOOK_SECRET")   # опционально: секрет вебхука
 
@@ -286,4 +286,5 @@ if __name__ == "__main__":
         secret_token=SECRET_TOKEN,          # можешь удалить, если не используешь
         allowed_updates=Update.ALL_TYPES,
     )
+
 
