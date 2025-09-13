@@ -237,11 +237,28 @@ class RealTimeBitcoinTrader:
 if __name__ == "__main__":
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID")  # str(chat_id)
-    TWELVEDATA_API_KEY = os.getenv("YOUR_API_KEY") or os.getenv("TWELVEDATA_API_KEY")
+    # Поддержим оба названия ключа, но лучше использовать TWELVEDATA_API_KEY
+    TWELVEDATA_API_KEY = os.getenv("TWELVEDATA_API_KEY") or os.getenv("YOUR_API_KEY")
 
-    if not all([TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TWELVEDATA_API_KEY]):
-        print("❌ Ошибка: Не найдены все необходимые переменные окружения (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TWELVEDATA_API_KEY).")
-        print("💡 Убедитесь, что вы настроили их в панели платформы.")
+    # Для webhook нужен внешний адрес твоей веб-службы на Render
+    APP_BASE_URL = os.getenv("APP_BASE_URL")  # например: https://telegram-crypto-bot.onrender.com
+    WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", "telegram")  # путь эндпойнта (можно поменять)
+    SECRET_TOKEN = os.getenv("TELEGRAM_WEBHOOK_SECRET")   # опционально: секрет вебхука
+
+    # Порт Render передаёт в переменной PORT
+    PORT = int(os.getenv("PORT", "8000"))
+
+    missing = []
+    for k, v in {
+        "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN,
+        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID,
+        "TWELVEDATA_API_KEY": TWELVEDATA_API_KEY,
+        "APP_BASE_URL": APP_BASE_URL,
+    }.items():
+        if not v:
+            missing.append(k)
+    if missing:
+        print("❌ Отсутствуют переменные окружения:", ", ".join(missing))
         raise SystemExit(1)
 
     bot_instance = RealTimeBitcoinTrader(
@@ -255,5 +272,18 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("stop", bot_instance.stop_command))
     application.add_handler(CommandHandler("status", bot_instance.status_command))
 
-    print("🚀 Telegram bot buyruqlarni eshitishni boshladi...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    public_webhook_url = f"{APP_BASE_URL.rstrip('/')}/{WEBHOOK_PATH}"
+    print("🚀 Telegram bot buyruqlarni eshitishni boshladi (webhook)...")
+    print(f"🌐 Webhook URL: {public_webhook_url}")
+    print(f"🔉 Listening on 0.0.0.0:{PORT} path=/{WEBHOOK_PATH}")
+
+    # Запуск вебхука (PTB сам выставит setWebhook на указанный URL)
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=WEBHOOK_PATH,
+        webhook_url=public_webhook_url,
+        secret_token=SECRET_TOKEN,          # можешь удалить, если не используешь
+        allowed_updates=Update.ALL_TYPES,
+    )
+
